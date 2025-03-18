@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import axios from "axios";
 import { 
   Button, 
@@ -6,7 +6,9 @@ import {
   Card, 
   CardContent, 
   Box, 
-  CircularProgress 
+  CircularProgress,
+  Container,
+  Grid
 } from "@mui/material";
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
@@ -15,9 +17,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const API_KEY = import.meta.env.VITE_ELEVEN_LABS_API_KEY;
 const ELEVEN_LABS_VOICE_ID = import.meta.env.VITE_ELEVEN_LABS_VOICE_ID;
-
-// Set maximum listening duration to  minutes (300,000 milliseconds)
-const MAX_LISTENING_DURATION = 300000; 
+const MAX_LISTENING_DURATION = 300000; // 5 minutes
 
 export default function AiBot() {
   const [listening, setListening] = useState(false);
@@ -28,14 +28,11 @@ export default function AiBot() {
   const audioRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
 
-  // Set up SpeechRecognition
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
   recognition.interimResults = false;
   recognition.continuous = true;
   recognition.lang = "en-US";
-
-
 
   recognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
@@ -47,12 +44,10 @@ export default function AiBot() {
     console.error("Speech recognition error", event.error);
   };
 
-
   const startListening = () => {
     setListening(true);
     recognition.start();
-    // Set a timeout to stop listening automatically after MAX_LISTENING_DURATION
-    listeningTimeoutRef.current = setTimeout((  ) => {
+    listeningTimeoutRef.current = setTimeout(() => {
       if (listening) {
         stopListening();
       }
@@ -67,7 +62,6 @@ export default function AiBot() {
     }
   };
 
-  // Send the user's speech text to the backend AI processor
   const sendTextToBackend = async (text) => {
     try {
       setLoadingAudio(true);
@@ -79,7 +73,6 @@ export default function AiBot() {
     }
   };
 
-  // Call ElevenLabs TTS API, create an audio element and wait for it to load
   const callElevenLabsTTS = async (text) => {
     setResponseReady(false);
     const ttsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_LABS_VOICE_ID}`;
@@ -102,15 +95,12 @@ export default function AiBot() {
       }
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-
-      // Create an audio element and set its onloadeddata event
       const audio = new Audio(audioUrl);
       audio.onloadeddata = () => {
         setLoadingAudio(false);
         setResponseReady(true);
       };
       audio.play();
-      // Store the audio element to display controls later
       audioRef.current = audio;
     } catch (error) {
       console.error("Error in ElevenLabs TTS:", error);
@@ -121,101 +111,103 @@ export default function AiBot() {
   return (
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100vw',
-        minHeight: '100vh',
-        p: 2,
-        background: 'linear-gradient(135deg, #2E7D32 0%, #FFD700 100%)', // Dark green to gold gradient
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #2E7D32 0%, #FFD700 100%)",
+        py: { xs: 2, sm: 4 },
       }}
     >
-      <Card
-        sx={{
-          width: '100%',
-          maxWidth: { xs: '100%', sm: 500, md: 600 },
-          borderRadius: 3,
-          boxShadow: 3,
-          p: { xs: 2, sm: 3 },
-          mx: 'auto',
-          my: 4,
-          backgroundColor: "#fdfdfd"
-        }}
-      >
-        <CardContent>
-          <Typography variant="h4" align="center" gutterBottom sx={{ color: "#2E7D32", fontWeight: "bold" }}>
-            <AttachMoneyIcon sx={{ mr: 1 }} />
-            Get Good With Money
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-            <Button
-              variant="contained"
-              color="success"
-              onMouseDown={startListening}
-              onMouseUp={stopListening}
-              startIcon={listening ? <MicIcon /> : <MicOffIcon />}
-              sx={{
-                py: 1.5,
-                px: 3,
-                fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-              }}
-            >
-              {listening ? "Listening..." : "Hold to Speak"}
-            </Button>
-          </Box>
-          <Box sx={{ my: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: "#2E7D32" }}>
-              Your Speech:
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                backgroundColor: '#e8f5e9',
-                p: 2,
-                borderRadius: '8px',
-                minHeight: '50px',
-                fontSize: { xs: '0.8rem', sm: '1rem' },
-              }}
-            >
-              {recognizedText}
-            </Typography>
-          </Box>
-          <Box sx={{ my: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: "#2E7D32" }}>
-              Tiffany's Response:
-            </Typography>
-            {loadingAudio && (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100px' }}>
-                <CircularProgress size={36} color="success" sx={{ mr: 1 }} />
-                <Typography variant="body1">Loading ...</Typography>
-              </Box>
-            )}
-            {responseReady && (
-              <Box>
+      <Container maxWidth="sm">
+        <Card
+          sx={{
+            borderRadius: 3,
+            boxShadow: 3,
+            p: { xs: 2, sm: 3 },
+            backgroundColor: "#fdfdfd",
+          }}
+        >
+          <CardContent>
+            <Grid container spacing={2} direction="column">
+              <Grid item xs={12}>
+                <Typography
+                  variant="h4"
+                  align="center"
+                  gutterBottom
+                  sx={{ color: "#2E7D32", fontWeight: "bold", fontSize: { xs: "1.8rem", sm: "2.2rem" } }}
+                >
+                  <AttachMoneyIcon sx={{ mr: 1, fontSize: { xs: "2rem", sm: "2.5rem" } }} />
+                  Get Good With Money
+                </Typography>
+              </Grid>
+              <Grid item xs={12} container justifyContent="center">
+                <Button
+                  variant="contained"
+                  color="success"
+                  onMouseDown={startListening}
+                  onMouseUp={stopListening}
+                  onTouchStart={startListening}
+                  onTouchEnd={stopListening}
+                  startIcon={listening ? <MicIcon /> : <MicOffIcon />}
+                  sx={{
+                    py: 1.5,
+                    px: 3,
+                    fontSize: { xs: "0.9rem", sm: "1rem" },
+                  }}
+                >
+                  {listening ? "Listening..." : "Hold to Speak"}
+                </Button>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom sx={{ color: "#2E7D32", fontSize: { xs: "1rem", sm: "1.2rem" } }}>
+                  Your Speech:
+                </Typography>
                 <Typography
                   variant="body1"
                   sx={{
-                    backgroundColor: '#fff9c4',
+                    backgroundColor: "#e8f5e9",
                     p: 2,
-                    borderRadius: '8px',
-                    minHeight: '50px',
-                    fontSize: { xs: '0.8rem', sm: '1rem' },
-                    mb: 2,
+                    borderRadius: "8px",
+                    minHeight: "50px",
+                    fontSize: { xs: "0.8rem", sm: "1rem" },
                   }}
                 >
-                  {aiResponse}
+                  {recognizedText}
                 </Typography>
-                {/* Display audio controls if needed */}
-                
-              </Box>
-            )}
-            {!loadingAudio && !responseReady && (
-              <Typography variant="body2" sx={{ textAlign: 'center', color: "#757575" }}>
-                Awaiting response...
-              </Typography>
-            )}
-          </Box>
-        </CardContent>
-      </Card>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom sx={{ color: "#2E7D32", fontSize: { xs: "1rem", sm: "1.2rem" } }}>
+                  Tiffany's Response:
+                </Typography>
+                {loadingAudio && (
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100px" }}>
+                    <CircularProgress size={36} color="success" sx={{ mr: 1 }} />
+                    <Typography variant="body1">Loading ...</Typography>
+                  </Box>
+                )}
+                {responseReady && (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      backgroundColor: "#fff9c4",
+                      p: 2,
+                      borderRadius: "8px",
+                      minHeight: "50px",
+                      fontSize: { xs: "0.8rem", sm: "1rem" },
+                      mb: 2,
+                    }}
+                  >
+                    {aiResponse}
+                  </Typography>
+                )}
+                {loadingAudio && (
+                  <Typography variant="body2" sx={{ textAlign: "center", color: "#757575" }}>
+                    Awaiting response...
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Container>
     </Box>
   );
 }
